@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { postRouter } from "./post";
-import { auth, signIn } from "~/server/auth";
 import { db } from "~/server/db";
 import { faker } from "@faker-js/faker";
 
@@ -11,8 +10,6 @@ vi.mock("~/server/db");
 vi.mock("~/server/auth", () => ({
   auth: vi.fn(),
 }));
-
-const mockAuth = vi.mocked(auth);
 
 describe("PostRouter", () => {
   beforeEach(() => {

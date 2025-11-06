@@ -45,17 +45,7 @@ export const invitationRouter = createTRPCRouter({
         });
       }
 
-      // Check if user is already a member
-      const existingMember = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId: input.email, // This won't work - we need to check by email
-            organizationId: input.organizationId,
-          },
-        },
-      });
-
-      // Better approach: check if a user with this email exists and is already a member
+      // Check if a user with this email exists and is already a member
       const existingUser = await ctx.db.user.findUnique({
         where: { email: input.email },
         include: {

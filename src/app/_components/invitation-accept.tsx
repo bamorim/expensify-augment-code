@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 
@@ -26,12 +27,12 @@ export function InvitationAccept({ invitationId }: { invitationId: string }) {
         <h2 className="mb-4 text-2xl font-bold text-red-400">Error</h2>
         <p className="text-white/80">{fetchError.message}</p>
         <div className="mt-4">
-          <a
+          <Link
             href="/invitations"
             className="rounded-full bg-white/10 px-6 py-2 font-semibold transition hover:bg-white/20"
           >
             View All Invitations
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -90,12 +91,12 @@ export function InvitationAccept({ invitationId }: { invitationId: string }) {
         >
           {acceptInvitation.isPending ? "Accepting..." : "Accept Invitation"}
         </button>
-        <a
+        <Link
           href="/invitations"
           className="rounded-full bg-white/5 px-8 py-3 font-semibold transition hover:bg-white/10"
         >
           View All Invitations
-        </a>
+        </Link>
       </div>
 
       {acceptInvitation.error && (

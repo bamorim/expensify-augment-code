@@ -92,7 +92,7 @@ export function OrganizationList() {
 
         {organizations.length === 0 ? (
           <p className="text-white/60">
-            You don't belong to any organizations yet. Create one to get
+            You don&apos;t belong to any organizations yet. Create one to get
             started!
           </p>
         ) : (

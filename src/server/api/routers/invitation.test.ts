@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { invitationRouter } from "./invitation";
-import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { faker } from "@faker-js/faker";
 import { TRPCError } from "@trpc/server";
@@ -19,7 +18,6 @@ vi.mock("~/server/services/email", () => ({
   sendInvitationEmail: vi.fn(),
 }));
 
-const mockAuth = vi.mocked(auth);
 const mockSendInvitationEmail = vi.mocked(emailService.sendInvitationEmail);
 
 describe("InvitationRouter", () => {

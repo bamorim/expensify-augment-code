@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { organizationRouter } from "./organization";
-import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { faker } from "@faker-js/faker";
 import { TRPCError } from "@trpc/server";
@@ -12,8 +11,6 @@ vi.mock("~/server/db");
 vi.mock("~/server/auth", () => ({
   auth: vi.fn(),
 }));
-
-const mockAuth = vi.mocked(auth);
 
 describe("OrganizationRouter", () => {
   beforeEach(() => {
@@ -111,7 +108,7 @@ describe("OrganizationRouter", () => {
       });
 
       // Create organization for user2
-      const org2 = await db.organization.create({
+      await db.organization.create({
         data: {
           name: "User 2 Org",
           members: {
@@ -191,6 +188,61 @@ describe("OrganizationRouter", () => {
       const result = await caller.list();
 
       expect(result).toHaveLength(0);
+    });
+
+    it("should return correct role for current user, not first member", async () => {
+      // Create two users
+      const adminUser = await db.user.create({
+        data: {
+          name: "Admin User",
+          email: faker.internet.email(),
+        },
+      });
+
+      const memberUser = await db.user.create({
+        data: {
+          name: "Member User",
+          email: faker.internet.email(),
+        },
+      });
+
+      // Create organization with adminUser as first member (ADMIN) and memberUser as second member (MEMBER)
+      const org = await db.organization.create({
+        data: {
+          name: "Test Org",
+          members: {
+            create: [
+              {
+                userId: adminUser.id,
+                role: "ADMIN",
+              },
+              {
+                userId: memberUser.id,
+                role: "MEMBER",
+              },
+            ],
+          },
+        },
+      });
+
+      // Query as memberUser (second member)
+      const mockSession = {
+        user: memberUser,
+        expires: "2030-12-31T23:59:59.999Z",
+      };
+
+      const caller = organizationRouter.createCaller({
+        db: db,
+        session: mockSession,
+        headers: new Headers(),
+      });
+
+      const result = await caller.list();
+
+      // Should return the organization with MEMBER role (not ADMIN from first member)
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toEqual(org.id);
+      expect(result[0]?.role).toEqual("MEMBER");
     });
   });
 

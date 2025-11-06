@@ -21,7 +21,7 @@ export function InvitationsList() {
     return (
       <div className="rounded-xl bg-white/10 p-6">
         <p className="text-white/60">
-          You don't have any pending invitations at the moment.
+          You don&apos;t have any pending invitations at the moment.
         </p>
       </div>
     );

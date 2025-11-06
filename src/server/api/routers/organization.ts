@@ -48,34 +48,28 @@ export const organizationRouter = createTRPCRouter({
   list: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
-    const organizations = await ctx.db.organization.findMany({
+    // Query by membership first - more efficient and ensures we have the user's role
+    const memberships = await ctx.db.organizationMember.findMany({
       where: {
-        members: {
-          some: {
-            userId,
-          },
-        },
+        userId,
       },
       include: {
-        members: {
-          where: { userId },
-          select: {
-            role: true,
-          },
-        },
+        organization: true,
       },
       orderBy: {
-        createdAt: "desc",
+        organization: {
+          createdAt: "desc",
+        },
       },
     });
 
-    // Flatten the structure to include role at the top level
-    return organizations.map((org) => ({
-      id: org.id,
-      name: org.name,
-      createdAt: org.createdAt,
-      updatedAt: org.updatedAt,
-      role: org.members[0]?.role ?? "MEMBER",
+    // Map to the expected format with role from membership
+    return memberships.map((membership) => ({
+      id: membership.organization.id,
+      name: membership.organization.name,
+      createdAt: membership.organization.createdAt,
+      updatedAt: membership.organization.updatedAt,
+      role: membership.role,
     }));
   }),
 
@@ -88,48 +82,46 @@ export const organizationRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const userId = ctx.session.user.id;
 
-      const organization = await ctx.db.organization.findFirst({
+      // Query by membership first - more efficient and ensures we have the user's role
+      const membership = await ctx.db.organizationMember.findUnique({
         where: {
-          id: input.id,
-          members: {
-            some: {
-              userId,
-            },
+          userId_organizationId: {
+            userId,
+            organizationId: input.id,
           },
         },
         include: {
-          members: {
+          organization: {
             include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
+              members: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                    },
+                  },
+                },
+                orderBy: {
+                  createdAt: "asc",
                 },
               },
-            },
-            orderBy: {
-              createdAt: "asc",
             },
           },
         },
       });
 
-      if (!organization) {
+      if (!membership) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Organization not found or you don't have access to it",
         });
       }
 
-      // Find current user's membership to determine their role
-      const currentUserMembership = organization.members.find(
-        (m) => m.userId === userId,
-      );
-
       return {
-        ...organization,
-        currentUserRole: currentUserMembership?.role,
+        ...membership.organization,
+        currentUserRole: membership.role,
       };
     }),
 });
