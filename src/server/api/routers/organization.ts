@@ -122,6 +122,14 @@ export const organizationRouter = createTRPCRouter({
         });
       }
 
-      return organization;
+      // Find current user's membership to determine their role
+      const currentUserMembership = organization.members.find(
+        (m) => m.userId === userId,
+      );
+
+      return {
+        ...organization,
+        currentUserRole: currentUserMembership?.role,
+      };
     }),
 });

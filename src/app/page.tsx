@@ -54,12 +54,20 @@ export default async function Home() {
               </p>
               <div className="flex gap-4">
                 {session && (
-                  <Link
-                    href="/organizations"
-                    className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
-                  >
-                    Organizations
-                  </Link>
+                  <>
+                    <Link
+                      href="/organizations"
+                      className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+                    >
+                      Organizations
+                    </Link>
+                    <Link
+                      href="/invitations"
+                      className="rounded-full bg-white/10 px-10 py-3 font-semibold no-underline transition hover:bg-white/20"
+                    >
+                      Invitations
+                    </Link>
+                  </>
                 )}
                 <Link
                   href={session ? "/api/auth/signout" : "/api/auth/signin"}

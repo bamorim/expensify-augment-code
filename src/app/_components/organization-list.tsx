@@ -109,15 +109,12 @@ export function OrganizationList() {
                     {new Date(org.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    // TODO: Navigate to organization details
-                    alert(`View details for ${org.name}`);
-                  }}
+                <a
+                  href={`/organizations/${org.id}`}
                   className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold transition hover:bg-white/20"
                 >
                   View Details
-                </button>
+                </a>
               </div>
             ))}
           </div>

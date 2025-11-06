@@ -60,6 +60,7 @@ model User {
     sessions      Session[]
     posts         Post[]
     organizationMembers OrganizationMember[]
+    sentInvitations     Invitation[]
 }
 
 model VerificationToken {
@@ -76,7 +77,8 @@ model Organization {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    members OrganizationMember[]
+    members     OrganizationMember[]
+    invitations Invitation[]
 
     @@index([name])
 }
@@ -99,4 +101,28 @@ model OrganizationMember {
     @@unique([userId, organizationId])
     @@index([userId])
     @@index([organizationId])
+}
+
+enum InvitationStatus {
+    PENDING
+    ACCEPTED
+    EXPIRED
+}
+
+model Invitation {
+    id             String           @id @default(cuid())
+    organizationId String
+    email          String
+    role           OrganizationRole @default(MEMBER)
+    status         InvitationStatus @default(PENDING)
+    invitedById    String
+    createdAt      DateTime         @default(now())
+    expiresAt      DateTime
+
+    organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    invitedBy    User         @relation(fields: [invitedById], references: [id], onDelete: Cascade)
+
+    @@index([email])
+    @@index([organizationId])
+    @@index([status])
 }
