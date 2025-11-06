@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "~/trpc/react";
 import { ExpenseCategories } from "./expense-categories";
+import { Policies } from "./policies";
 
 export function OrganizationDetails({
   organizationId,
@@ -50,6 +51,9 @@ export function OrganizationDetails({
 
       {/* Expense Categories */}
       <ExpenseCategories organizationId={organizationId} isAdmin={isAdmin} />
+
+      {/* Policies */}
+      <Policies organizationId={organizationId} isAdmin={isAdmin} />
 
       {/* Invite Section (Admin Only) */}
       {isAdmin && <InviteUserSection organizationId={organizationId} />}

@@ -10,9 +10,22 @@ export function ExpenseCategories({
   organizationId: string;
   isAdmin: boolean;
 }) {
-  const [categories] = api.expenseCategory.list.useSuspenseQuery({
+  const { data: categories, isLoading } = api.expenseCategory.list.useQuery({
     organizationId,
   });
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl bg-white/10 p-6">
+        <h2 className="mb-4 text-2xl font-bold">Expense Categories</h2>
+        <p className="text-white/60">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!categories) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col gap-6">

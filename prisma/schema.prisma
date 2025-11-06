@@ -61,6 +61,7 @@ model User {
     posts         Post[]
     organizationMembers OrganizationMember[]
     sentInvitations     Invitation[]
+    policies            Policy[]
 }
 
 model VerificationToken {
@@ -80,6 +81,7 @@ model Organization {
     members          OrganizationMember[]
     invitations      Invitation[]
     expenseCategories ExpenseCategory[]
+    policies         Policy[]
 
     @@index([name])
 }
@@ -137,7 +139,35 @@ model ExpenseCategory {
     updatedAt      DateTime @updatedAt
 
     organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    policies     Policy[]
 
     @@unique([organizationId, name])
     @@index([organizationId])
+}
+
+enum PolicyPeriod {
+    DAILY
+    WEEKLY
+    MONTHLY
+}
+
+model Policy {
+    id             String       @id @default(cuid())
+    organizationId String
+    categoryId     String
+    userId         String?      // null = organization-wide policy, non-null = user-specific policy
+    maxAmount      Int          // stored in cents to avoid floating point issues
+    period         PolicyPeriod
+    requiresReview Boolean      // true = manual review, false = auto-approve if under limit
+    createdAt      DateTime     @default(now())
+    updatedAt      DateTime     @updatedAt
+
+    organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+    category     ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+    user         User?           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([organizationId, categoryId, userId])
+    @@index([organizationId])
+    @@index([categoryId])
+    @@index([userId])
 }
