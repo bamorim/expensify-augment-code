@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, requireOrganizationAdmin } from "~/server/api/trpc";
 import { sendInvitationEmail } from "~/server/services/email";
 
 export const invitationRouter = createTRPCRouter({
@@ -19,31 +19,7 @@ export const invitationRouter = createTRPCRouter({
       const userId = ctx.session.user.id;
 
       // Check if the current user is an admin of the organization
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: input.organizationId,
-          },
-        },
-        include: {
-          organization: true,
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
-
-      if (membership.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only admins can invite users to the organization",
-        });
-      }
+      await requireOrganizationAdmin(ctx, input.organizationId);
 
       // Check if a user with this email exists and is already a member
       const existingUser = await ctx.db.user.findUnique({
@@ -311,31 +287,8 @@ export const invitationRouter = createTRPCRouter({
   listOrganizationInvitations: protectedProcedure
     .input(z.object({ organizationId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-
       // Check if the current user is an admin of the organization
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: input.organizationId,
-          },
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
-
-      if (membership.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only admins can view organization invitations",
-        });
-      }
+      await requireOrganizationAdmin(ctx, input.organizationId);
 
       const invitations = await ctx.db.invitation.findMany({
         where: {

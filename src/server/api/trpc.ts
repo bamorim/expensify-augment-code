@@ -131,3 +131,58 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Helper function to check organization membership and role
+ *
+ * @param ctx - The tRPC context (must have db and session)
+ * @param organizationId - The organization ID to check membership for
+ * @returns The membership object with organization and role information
+ * @throws TRPCError with NOT_FOUND if user is not a member of the organization
+ */
+export async function requireOrganizationMembership(
+  ctx: { db: typeof db; session: { user: { id: string } } },
+  organizationId: string,
+) {
+  const membership = await ctx.db.organizationMember.findUnique({
+    where: {
+      userId_organizationId: {
+        userId: ctx.session.user.id,
+        organizationId,
+      },
+    }
+  });
+
+  if (!membership) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Organization not found or you don't have access to it",
+    });
+  }
+
+  return membership;
+}
+
+/**
+ * Helper function to check organization membership and require admin role
+ *
+ * @param ctx - The tRPC context (must have db and session)
+ * @param organizationId - The organization ID to check membership for
+ * @returns The membership object with role information
+ * @throws TRPCError with NOT_FOUND if user is not a member, or FORBIDDEN if not an admin
+ */
+export async function requireOrganizationAdmin(
+  ctx: { db: typeof db; session: { user: { id: string } } },
+  organizationId: string,
+) {
+  const membership = await requireOrganizationMembership(ctx, organizationId);
+
+  if (membership.role !== "ADMIN") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Only admins can perform this action",
+    });
+  }
+
+  return membership;
+}

@@ -1,7 +1,7 @@
+import assert from "assert";
 import { z } from "zod";
-import { TRPCError } from "@trpc/server";
 
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, requireOrganizationMembership } from "~/server/api/trpc";
 
 export const organizationRouter = createTRPCRouter({
   /**
@@ -80,31 +80,18 @@ export const organizationRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
+      const membership = await requireOrganizationMembership(ctx, input.id);
 
-      // Query by membership first - more efficient and ensures we have the user's role
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: input.id,
-          },
-        },
+      const org = await ctx.db.organization.findUnique({
+        where: { id: input.id },
         include: {
-          organization: {
+          members: {
             include: {
-              members: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                    },
-                  },
-                },
-                orderBy: {
-                  createdAt: "asc",
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
                 },
               },
             },
@@ -112,15 +99,10 @@ export const organizationRouter = createTRPCRouter({
         },
       });
 
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
+      assert(org, "if the membership exists, org must exist as well")
 
       return {
-        ...membership.organization,
+        ...org,
         currentUserRole: membership.role,
       };
     }),

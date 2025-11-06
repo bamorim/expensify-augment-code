@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, requireOrganizationAdmin, requireOrganizationMembership } from "~/server/api/trpc";
 
 export const expenseCategoryRouter = createTRPCRouter({
   /**
@@ -16,31 +16,8 @@ export const expenseCategoryRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-
       // Check if the current user is an admin of the organization
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: input.organizationId,
-          },
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
-
-      if (membership.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only admins can create expense categories",
-        });
-      }
+      await requireOrganizationAdmin(ctx, input.organizationId);
 
       // Create the expense category
       const category = await ctx.db.expenseCategory.create({
@@ -66,8 +43,6 @@ export const expenseCategoryRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-
       // Get the category to check organization membership
       const category = await ctx.db.expenseCategory.findUnique({
         where: { id: input.id },
@@ -81,28 +56,7 @@ export const expenseCategoryRouter = createTRPCRouter({
       }
 
       // Check if the current user is an admin of the organization
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: category.organizationId,
-          },
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
-
-      if (membership.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only admins can update expense categories",
-        });
-      }
+      await requireOrganizationAdmin(ctx, category.organizationId);
 
       // Update the category
       const updatedCategory = await ctx.db.expenseCategory.update({
@@ -122,8 +76,6 @@ export const expenseCategoryRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-
       // Get the category to check organization membership
       const category = await ctx.db.expenseCategory.findUnique({
         where: { id: input.id },
@@ -137,28 +89,7 @@ export const expenseCategoryRouter = createTRPCRouter({
       }
 
       // Check if the current user is an admin of the organization
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: category.organizationId,
-          },
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
-
-      if (membership.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only admins can delete expense categories",
-        });
-      }
+      await requireOrganizationAdmin(ctx, category.organizationId);
 
       // Delete the category
       await ctx.db.expenseCategory.delete({
@@ -174,24 +105,8 @@ export const expenseCategoryRouter = createTRPCRouter({
   list: protectedProcedure
     .input(z.object({ organizationId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-
       // Check if the current user is a member of the organization
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: input.organizationId,
-          },
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
+      await requireOrganizationMembership(ctx, input.organizationId);
 
       // Get all categories for the organization
       const categories = await ctx.db.expenseCategory.findMany({
@@ -212,8 +127,6 @@ export const expenseCategoryRouter = createTRPCRouter({
   getById: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const userId = ctx.session.user.id;
-
       // Get the category
       const category = await ctx.db.expenseCategory.findUnique({
         where: { id: input.id },
@@ -227,21 +140,7 @@ export const expenseCategoryRouter = createTRPCRouter({
       }
 
       // Check if the current user is a member of the organization
-      const membership = await ctx.db.organizationMember.findUnique({
-        where: {
-          userId_organizationId: {
-            userId,
-            organizationId: category.organizationId,
-          },
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Organization not found or you don't have access to it",
-        });
-      }
+      await requireOrganizationMembership(ctx, category.organizationId);
 
       return category;
     }),
